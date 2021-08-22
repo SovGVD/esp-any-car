@@ -1,4 +1,4 @@
-# Robot dog web interface
+# Web interface
 
 ## Build
  - `npm install` - install node.js packages

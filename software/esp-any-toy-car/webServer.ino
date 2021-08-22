@@ -28,23 +28,16 @@ void initWebServerRoutes() {
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
  
-  if(type == WS_EVT_CONNECT){ 
+  if(type == WS_EVT_CONNECT){
+    wsclient = client;
     client->text("Ok");
     clientOnline = true;
   } else if (clientOnline && type == WS_EVT_DATA) {
     FS_WS_count = 0;  // zero FS counter
     switch (data[0]) {
-
       case 77:  // (M)ove
         pMove(data);
         break;
-
-      #ifdef BOARD_ESP32CAM
-      case 83:  // (S)tream - actually it is not proper stream, it is binary data sending via WebSocket with JPEG image as payload
-        cameraHandleStream(client);
-        break;
-      #endif
-
     }
   } else if(type == WS_EVT_DISCONNECT){
     clientOnline = false;

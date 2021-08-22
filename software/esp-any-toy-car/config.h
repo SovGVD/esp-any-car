@@ -13,7 +13,3 @@
 #define MAX_SPEED 250   // max is 255
 
 #define DEBUG
-
-// FOR esp32cam
-#define BOARD_ESP32CAM_FRAMESIZE    FRAMESIZE_QVGA
-#define BOARD_ESP32CAM_JPEG_QUALITY 20

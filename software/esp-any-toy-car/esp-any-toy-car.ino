@@ -1,16 +1,17 @@
 #include "config.h"
 #include "def.h"
 
-#if defined(BOARD_ESP32) || defined(BOARD_ESP32CAM)
-  #include "soc/soc.h"           // Disable brownour problems
-  #include "soc/rtc_cntl_reg.h"  // Disable brownour problems
-  #include <analogWrite.h>
-#endif
-
 #ifdef BOARD_ESP32CAM
   #include "esp_camera.h"
   #include "camera.h"
   camera_fb_t * fb = NULL;
+#endif
+
+
+#if defined(BOARD_ESP32) || defined(BOARD_ESP32CAM)
+  #include "soc/soc.h"           // Disable brownour problems
+  #include "soc/rtc_cntl_reg.h"  // Disable brownour problems
+  //#include <analogWrite.h>  // Looks like this in coflict with BOARD_ESP32CAM
 #endif
 
 #include "config_wifi.h"
@@ -51,6 +52,7 @@ bool enabled = true;
 // WiFi
 // WebServer
 bool clientOnline = false;
+AsyncWebSocketClient * wsclient;
 IPAddress WiFiIP;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -58,6 +60,10 @@ AsyncWebSocket ws("/ws");
 void setup() {
   #if defined(BOARD_ESP32) || defined(BOARD_ESP32CAM)
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  #endif
+
+  #ifdef BOARD_ESP32CAM
+    cameraSetup();
   #endif
 
   #ifdef DEBUG
@@ -70,9 +76,6 @@ void setup() {
   WiFiIP = WiFi.softAPIP();
 
   initWebServer();
-  #ifdef BOARD_ESP32CAM
-    cameraSetup();
-  #endif
 }
 
 void loop() {
@@ -86,6 +89,10 @@ void loop() {
 
     loopTime = millis() - currentTime;
   }
+
+  #ifdef BOARD_ESP32CAM
+    cameraHandleStream();
+  #endif
 }
 
 void calcMove()
@@ -112,9 +119,9 @@ void calcMove()
 
 void doMove()
 {
-  analogWrite(LEFT_MOTOR1_PIN, leftMotor > 0 ? leftMotor*MAX_SPEED : 0);
-  analogWrite(LEFT_MOTOR2_PIN, leftMotor > 0 ? 0                   : leftMotor*MAX_SPEED);
-
-  analogWrite(RIGHT_MOTOR1_PIN, rightMotor > 0 ? 0                    : rightMotor*MAX_SPEED);
-  analogWrite(RIGHT_MOTOR2_PIN, rightMotor > 0 ? rightMotor*MAX_SPEED : 0);
+//  analogWrite(LEFT_MOTOR1_PIN,   leftMotor > 0 ? leftMotor*MAX_SPEED  : 0);
+//  analogWrite(LEFT_MOTOR2_PIN,   leftMotor > 0 ? 0                    : leftMotor*MAX_SPEED);
+//
+//  analogWrite(RIGHT_MOTOR1_PIN, rightMotor > 0 ? 0                    : rightMotor*MAX_SPEED);
+//  analogWrite(RIGHT_MOTOR2_PIN, rightMotor > 0 ? rightMotor*MAX_SPEED : 0);
 }

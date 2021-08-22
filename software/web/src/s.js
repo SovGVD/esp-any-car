@@ -8,18 +8,21 @@ var vector = {
 };
 
 var ws = {
-    ws: null,
-    status: false,
-    error: false,
-    updateInterval: null,
-    init: function () {
+	ws: null,
+	status: false,
+	error: false,
+	updateInterval: null,
+	init: function () {
 		clearInterval(ws.updateInterval);
 		try {
 			ws.ws = new WebSocket(c.w);
-				ws.ws.onopen = function() {
+			ws.ws.onopen = function() {
 				ws.status = true;
 			};
-				ws.ws.onerror = function() {
+			ws.ws.onmessage = function (event) {
+				stream.display(event.data);
+			};
+			ws.ws.onerror = function() {
 				ws.status = false;
 			};
 
@@ -30,12 +33,29 @@ var ws = {
 			ws.error = true;
 			console.log(e);
 		};
-    },
-    update: function(data) {
+	},
+	update: function(data) {
 		if (ws.status) {
 			ws.ws.send(packet.move());
 		}
-    }
+	}
+};
+
+var stream = {
+	obj: null,
+	urlObject: null,
+	// TODO frame size from c.c
+	display: function (binData) {
+		if (!stream.obj) {
+			G('stream_container').style.display = 'block';
+			stream.obj = G('stream');
+		}
+		if (stream.urlObject) {
+			URL.revokeObjectURL(stream.urlObject);
+		}
+		stream.urlObject = URL.createObjectURL(new Blob([binData]));
+		stream.obj.src   = stream.urlObject;
+	}
 };
 
 var failsafe = {
@@ -46,18 +66,18 @@ var failsafe = {
 };
 
 var gui ={
-    init: function () {
+	init: function () {
 		gui.updateInterval = setInterval(gui.update, 100);
 		document.addEventListener("visibilitychange", gui.onVisibilityChange);
-    },
-    update: function () {
+	},
+	update: function () {
 		gui.showVector();
-    },
-    showVector: function () {
-    },
-    obj: {},
-    updateInterval: null,
-    onVisibilityChange: function () {
+	},
+	showVector: function () {
+	},
+	obj: {},
+	updateInterval: null,
+	onVisibilityChange: function () {
 		if (document.visibilityState == "hidden") {
 			failsafe.setFS();
 		}
@@ -72,12 +92,12 @@ var packet = {
 	_norm1: function (value) {
 		return (value+1)*10000;
 	},
-    _uint16: function (view, num, offset) {
+	_uint16: function (view, num, offset) {
 		view[offset]   = (num>>8)&255;
 		view[offset+1] = num&255;
-    },
+	},
 
-    move: function () {
+	move: function () {
 		packet.vMove[0] = 77;
 		packet.vMove[1] = 1;
 		packet._uint16(packet.vMove, packet._norm1(vector.speed), 2);
@@ -92,8 +112,8 @@ var onScreenGamepad = {
 	deadband: 0.05,
 	init: function () {
 		onScreenGamepad.obj = G('joystick');
-		onScreenGamepad.obj.addEventListener('mousedown', onScreenGamepad.eventStart);		
-		onScreenGamepad.obj.addEventListener('touchstart', onScreenGamepad.eventStart);		
+		onScreenGamepad.obj.addEventListener('mousedown', onScreenGamepad.eventStart);
+		onScreenGamepad.obj.addEventListener('touchstart', onScreenGamepad.eventStart);
 		
 		onScreenGamepad.obj.addEventListener('mouseup', onScreenGamepad.eventFinish);
 		onScreenGamepad.obj.addEventListener('mouseout', onScreenGamepad.eventFinish);
@@ -101,8 +121,8 @@ var onScreenGamepad = {
 		onScreenGamepad.obj.addEventListener('touchend', onScreenGamepad.eventFinish);
 		onScreenGamepad.obj.addEventListener('touchcancel', onScreenGamepad.eventFinish);
 		
-		onScreenGamepad.obj.addEventListener('mousemove', onScreenGamepad.eventMove);
-		onScreenGamepad.obj.addEventListener('touchmove', onScreenGamepad.eventMove);
+		onScreenGamepad.obj.addEventListener('mousemove', (event) => this.eventMove(false, event));
+		onScreenGamepad.obj.addEventListener('touchmove', (event) => this.eventMove(true, event));
 	},
 	eventStart() {
 		onScreenGamepad.isEvent = true;
@@ -113,9 +133,9 @@ var onScreenGamepad = {
 		vector.speed = 0;
 		onScreenGamepad.display(0, 0);
 	},
-	eventMove(event) {
-		var x = (event.clientX || event.touches[0].clientX)/onScreenGamepad.obj.offsetWidth*2-1;
-		var y = (event.clientY || event.touches[0].clientY)/onScreenGamepad.obj.offsetHeight*2-1;
+	eventMove(isTouch, event) {
+		let x = ((isTouch ? event.targetTouches[0].clientX : event.clientX) - event.target.offsetLeft) / this.obj.offsetWidth*2-1;
+		let y = ((isTouch ? event.targetTouches[0].clientY : event.clientY) - event.target.offsetTop) / this.obj.offsetHeight*2-1;
 		if (x >= -onScreenGamepad.deadband && x <= onScreenGamepad.deadband) x = 0;
 		if (y >= -onScreenGamepad.deadband && y <= onScreenGamepad.deadband) y = 0;
 		if (x > 1) x = 1;
